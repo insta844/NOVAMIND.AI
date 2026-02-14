@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovaMind AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: #fff; }
+        .dark body { background: #1f1f1f; }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900">
+    <!-- 🔥 APNI API KEY (already set) -->
+    <script>
+        const OWNER_API_KEY = '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';
+        const DEFAULT_MODEL = 'deepseek/deepseek-r1:free';
+    </script>
+
+    <div id="app" class="h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white dark:bg-gray-800 border-b p-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold">✨ NovaMind AI</h1>
+            <button id="themeBtn" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">🌓</button>
+        </header>
+
+        <!-- Chat Area -->
+        <div class="flex-1 overflow-y-auto p-4" id="chatBox"></div>
+
+        <!-- Input -->
+        <div class="border-t p-4 bg-white dark:bg-gray-800">
+            <div class="flex gap-2 max-w-4xl mx-auto">
+                <textarea id="input" rows="1" class="flex-1 border rounded-lg p-3 resize-none" placeholder="Type your message..."></textarea>
+                <button id="sendBtn" class="bg-green-600 text-white px-6 rounded-lg hover:bg-green-700">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple working version
+        const chatBox = document.getElementById('chatBox');
+        const input = document.getElementById('input');
+        const sendBtn = document.getElementById('sendBtn');
+
+        let messages = [];
+
+        async function sendMessage() {
+            const text = input.value.trim();
+            if (!text) return;
+
+            // Show user message
+            messages.push({ role: 'user', content: text });
+            renderMessages();
+            input.value = '';
+
+            try {
+                const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${OWNER_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: DEFAULT_MODEL,
+                        messages: messages.slice(-10),
+                        stream: false
+                    })
+                });
+
+                const data = await response.json();
+                const reply = data.choices[0].message.content;
+                
+                messages.push({ role: 'assistant', content: reply });
+                renderMessages();
+
+            } catch (error) {
+                messages.push({ role: 'assistant', content: 'Error: ' + error.message });
+                renderMessages();
+            }
+        }
+
+        function renderMessages() {
+            chatBox.innerHTML = messages.map(m => `
+                <div class="mb-4 ${m.role === 'user' ? 'text-right' : ''}">
+                    <div class="inline-block p-3 rounded-lg ${m.role === 'user' ? 'bg-gray-200 dark:bg-gray-700' : 'bg-white dark:bg-gray-800 border'} max-w-[80%]">
+                        ${m.content}
+                    </div>
+                </div>
+            `).join('');
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        sendBtn.onclick = sendMessage;
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        };
+    </script>
+</body>
+</html>
